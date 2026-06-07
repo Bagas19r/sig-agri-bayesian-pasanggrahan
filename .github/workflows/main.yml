@@ -41,3 +41,10 @@ jobs:
           git config --local user.name "GitHub Action Robot"
           git add baseline_*.rds
           git diff --quiet && git diff --staged --quiet || (git commit -m "Automated Annual Baseline Update [Skip CI]" && git push)
+
+# 🚀 Langkah Akhir: Auto-Deploy ke Shinyapps.io
+      - name: Deploy to Shinyapps.io
+        run: |
+          Rscript -e "install.packages('rsconnect', dependencies = TRUE)"
+          Rscript -e "rsconnect::setAccountInfo(name='${{ secrets.SHINYAPPS_NAME }}', token='${{ secrets.SHINYAPPS_TOKEN }}', secret='${{ secrets.SHINYAPPS_SECRET }}')"
+          Rscript -e "rsconnect::deployApp('.', appName = 'Satelit_Agri_Pasanggrahan', forceUpdate = TRUE)"
