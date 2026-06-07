@@ -1,0 +1,43 @@
+name: Automated SIG-Agri Multi-Year Data Fusion Pipeline
+
+on:
+  schedule:
+    # Otomatis berjalan secara ghaib setiap tanggal 1 Januari jam 00:00 UTC
+    - cron: '0 0 1 1 *'
+  workflow_dispatch:
+    # Tombol manual jika Anda ingin memaksa robot berjalan detik ini juga
+
+jobs:
+  build_and_cook:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: 1. Ambil Kode Repositori
+        uses: actions/checkout@v4
+
+      - name: 2. Pasang Lingkungan R Virtual
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: 3. Pasang Library Spasial Ubuntu (GDAL & PROJ)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgdal-dev libproj-dev libgeos-dev libudunits2-dev
+
+      - name: 4. Pasang Package R pendukung Satelit
+        run: |
+          Rscript -e "install.packages(c('rstac', 'terra', 'sf'), dependencies=TRUE)"
+
+      - name: 5. Eksekusi Engine Pemrosesan Data Fusion (Optik + RADAR)
+        run: |
+          Rscript model_development.R
+
+      - name: 6. Amankan dan Push Berkas .RDS Baru Kembali ke Repositori
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Action Robot"
+          git add baseline_*.rds
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated Annual Baseline Update [Skip CI]" && git push)
